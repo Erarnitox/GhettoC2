@@ -1,6 +1,6 @@
 # Ghetto C2
 
-![LOGO](./res/logo.png)
+<img src="./res/logo.png" height="200px" width="auto" align="left" />
 
 Welcome to the Repository of Ghetto C2.
 A very basic C2 Framework written completely in Rust.
