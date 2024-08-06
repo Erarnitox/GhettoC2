@@ -35,7 +35,7 @@ create table logs (
     uid uuid not null,
     key varchar not null,
     value varchar not null,
-    time timestamp not null
+    time timestamp default now()
 );
 
 alter table logs

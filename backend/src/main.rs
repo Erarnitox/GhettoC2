@@ -44,7 +44,7 @@ async fn main() {
         .route("/info", get(get_info_handler))
         .route("/log", get(get_logs).post(create_log))
         .route("/update", get(get_zombies).post(create_zombie))
-        .route("/update/:res_id", patch(update_zombie))
+        .route("/update/:usr_id", patch(update_zombie))
         .route("/command", post(create_command))
 
         // access to database

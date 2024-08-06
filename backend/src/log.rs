@@ -1,7 +1,7 @@
 use axum::{extract::State, http::{HeaderMap, StatusCode}, Json};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::{types::Uuid, PgPool};
+use sqlx::{types::{uuid::{timestamp::context, Timestamp}, Uuid}, PgPool};
 
 use crate::{login_controller::is_authorized, login_model::Clearance};
 
@@ -59,7 +59,7 @@ pub async fn create_log(State(pg_pool):State<PgPool>, header_map: HeaderMap, Jso
     }
 
     let uuid = Uuid::parse_str(&user.uid).unwrap();
-
+    
     let row = sqlx::query_as!(
         CreateLogRow, 
         "INSERT INTO logs (uid, key, value) VALUES ($1, $2, $3) RETURNING id",

