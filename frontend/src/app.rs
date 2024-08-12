@@ -176,7 +176,7 @@ fn zombies_ui(ui: &mut egui::Ui, app: &mut App) {
                             //TODO: Handle Option 2 click
                             ui.close_menu();
                         }
-                        if ui.button("Mimikatz").clicked() {
+                        if ui.button("Screenshot").clicked() {
                             //TODO: Handle Option 2 click
                             ui.close_menu();
                         }

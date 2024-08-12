@@ -109,7 +109,7 @@ pub async fn create_zombie(State(pg_pool):State<PgPool>, header_map: HeaderMap, 
         }.to_owned(),
     };
 
-    return Ok((StatusCode::OK, json!({ "success": true, "token": token}).to_string()));
+    return Ok((StatusCode::OK, json!({ "success": true, "token": token, "uid": row.id.clone(), "pub_key": "tester"}).to_string()));
 }
 
 

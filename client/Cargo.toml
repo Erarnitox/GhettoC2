@@ -8,3 +8,10 @@ auto-launch = "0.5.0"
 libssh-rs = "0.3.3"
 local-ip-address = "0.6.1"
 whoami = "1.5.1"
+
+reqwest = {version = "0.12.5", features= ["default", "blocking", "json", "socks"]}
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.123"
+tokio = { version = "1", features = ["full"] }
+rand = "0.8.5"
+sled = "0.34.7"
