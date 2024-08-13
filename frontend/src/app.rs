@@ -2,6 +2,9 @@ use std::process::id;
 
 use eframe::{egui, glow::NONE};
 use egui::{LayerId, Response};
+use serde::Deserialize;
+use serde_json::json;
+use sqlx::types::ipnetwork::IpNetwork;
 
 enum Tab {
     Zombies,
@@ -9,9 +12,32 @@ enum Tab {
     Settings,
 }
 
+#[derive(Deserialize)]
+pub struct LoginResponse {
+    pub token: String,
+}
+
+#[derive(Deserialize)]
+struct ZombieRow {
+    id: String,
+    internal_ip: Option<IpNetwork>,
+    external_ip: Option<IpNetwork>,
+    hostname: Option<String>,
+    username: Option<String>,
+    operating_system: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ZombieUpdateResponse {
+    data: Vec<ZombieRow>,
+}
+
 #[derive(serde::Deserialize, serde::Serialize)]
 #[serde(default)]
 pub struct App {
+    #[serde(skip)]
+    needs_update: bool,
+
     #[serde(skip)]
     tab: Tab,
 
@@ -22,23 +48,34 @@ pub struct App {
     context_menu_id: Option<usize>,
 
     #[serde(skip)]
+    zombies: Vec<ZombieRow>,
+
+    #[serde(skip)]
     response: Option<Response>,
 
     backend_url: String,
     username: String,
     password: String,
+    access_token: String,
+    status_message: String,
+    zombie_message: String,
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
+            needs_update: true,
             tab: Tab::Zombies,
             selected_row: None,
             context_menu_id: None,
+            zombies: vec![],
             response: None,
             backend_url: "https://localhost:3000/api".to_owned(),
             username: "User".to_owned(),
             password: "123456".to_owned(),
+            access_token: "".to_owned(),
+            status_message: "Not logged in!".to_owned(),
+            zombie_message: "".to_owned(),
         }
     }
 }
@@ -83,7 +120,7 @@ impl eframe::App for App {
 }
 
 impl App {
-    fn selectable_row(&mut self, ui: &mut egui::Ui, index: usize, row: &Vec<&str>) {
+    fn selectable_row(&mut self, ui: &mut egui::Ui, index: usize, row: &Vec<String>) {
         let selected = self.selected_row == Some(index);
         
         for col_text in row.iter() {
@@ -116,6 +153,13 @@ impl App {
 }
 
 fn zombies_ui(ui: &mut egui::Ui, app: &mut App) {
+
+    if ui.button("Update Zombie List").clicked() {
+        app.needs_update = true;
+    }
+
+    ui.label(&app.zombie_message);
+    
    // static header
    egui::Grid::new("zm_header")
    .num_columns(7)
@@ -128,7 +172,7 @@ fn zombies_ui(ui: &mut egui::Ui, app: &mut App) {
        ui.label(egui::RichText::new("HOSTNAME").color(egui::Color32::LIGHT_BLUE).text_style(egui::TextStyle::Button));
        ui.label(egui::RichText::new("USER").color(egui::Color32::LIGHT_BLUE).text_style(egui::TextStyle::Button));
        ui.label(egui::RichText::new("OS").color(egui::Color32::LIGHT_BLUE).text_style(egui::TextStyle::Button));
-       ui.label(egui::RichText::new("STATUS").color(egui::Color32::LIGHT_BLUE).text_style(egui::TextStyle::Button));
+       //ui.label(egui::RichText::new("STATUS").color(egui::Color32::LIGHT_BLUE).text_style(egui::TextStyle::Button));
        ui.label(egui::RichText::new("Action").color(egui::Color32::LIGHT_BLUE).text_style(egui::TextStyle::Button));
        ui.end_row();
    });
@@ -144,11 +188,65 @@ fn zombies_ui(ui: &mut egui::Ui, app: &mut App) {
            .max_col_width(100.0)
            .striped(true)
            .show(ui, |ui| {
+                if app.needs_update && app.access_token.len() > 1 {
+                    let http_client = reqwest::blocking::Client::new();
+                    let res = http_client.get(format!("{}/update", app.backend_url))
+                        .bearer_auth(&app.access_token)
+                        .send();
 
-               //first user
-               for i in 0..3 {
-                    let row = vec![ "192.168.2.112", "-", "android", "erarnitox", "Linux", "ONLINE"];
-                    app.selectable_row(ui, i, &row);
+                    if res.is_ok() {
+                        let res = res.unwrap().json();
+
+                        if res.is_ok() {
+                            let updated: ZombieUpdateResponse = res.unwrap();
+
+                            app.zombies = updated.data;
+                            app.needs_update = false;
+                            app.zombie_message = "Zombies updated!".to_owned();
+                        } else {
+                            app.needs_update = false;
+                            app.zombie_message = format!("Failed: {}", res.err().unwrap().to_string());
+                        }
+                    } else {
+                        app.needs_update = false;
+                        app.zombie_message = "Connection to backend failed! Refresh the Token under 'Settings'!".to_owned();
+                    }
+                }
+
+               //zombies
+               let mut i: usize = 0;
+               let app_ref = & app;
+
+               for z in &app_ref.zombies {
+                    let internal_ip: String = match z.internal_ip {
+                        Some(net) => net.ip().to_string(),
+                        None => "".to_string(),
+                    };
+                    
+                    let external_ip: String = match z.external_ip {
+                        Some(net) => net.ip().to_string(),
+                        None => "".to_string(),
+                    };
+
+                    let row = vec![ 
+                        internal_ip.clone(),
+                        external_ip.clone(),
+                        z.hostname.clone().unwrap_or("-".to_string()),
+                        z.username.clone().unwrap_or("-".to_string()),
+                        z.operating_system.clone().unwrap_or("-".to_string()),
+                        //"ONLINE".to_string(),
+                    ];
+                    
+                    for col_text in row.iter() {
+                        let (rect, _response) = ui.allocate_exact_size([100.0, 15.0].into(), egui::Sense::click());
+                        ui.painter().text(
+                            rect.left_center(),
+                            egui::Align2::LEFT_CENTER,
+                            col_text,
+                            egui::FontId::default(),
+                            ui.visuals().text_color(),
+                        );
+                    }
                     
                     ui.menu_button("Action", |ui| {
                         if ui.button("Open SSH").clicked() {
@@ -194,9 +292,9 @@ fn zombies_ui(ui: &mut egui::Ui, app: &mut App) {
                             ui.close_menu();
                         }
                     });
-
-                   ui.end_row();
-               }
+                    i = i+1;
+                    ui.end_row();
+                }
            });
    });
 }
@@ -219,11 +317,33 @@ fn settings_ui(ui: &mut egui::Ui, app: &mut App) {
         ui.text_edit_singleline(&mut app.password);
     });
 
-    if ui.button("Save & Connect!").clicked() {
-        //TODO: authentication retrival of Auth-Token
-        //TODO: save creds in the database
-        //TODO: if successful hide creds in the input fields
+    if ui.button("Authorize").clicked() {
+        let http_client = reqwest::blocking::Client::new();
+        let url_base = &app.backend_url;
+        let json = json!({
+            "username": app.username,
+            "password": app.password,
+        });
+        let res = http_client.post(format!("{}/login", url_base))
+                .json(&json)
+                .send();
+        
+        if res.is_ok(){
+            let res = res.unwrap().json();
+
+            if res.is_ok() {
+                let res: LoginResponse = res.unwrap();
+                app.access_token = res.token;
+                app.status_message = format!(" Token: [{}]", &app.access_token);
+            } else {
+                app.status_message = "Login failed!".to_owned();
+            }
+        } else {
+            app.status_message = "URL not reachable!".to_owned();
+        }
     }
+
+    ui.label(&app.status_message);
 }
 
 fn logs_ui(ui: &mut egui::Ui) {

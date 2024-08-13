@@ -8,6 +8,12 @@ use whoami::{fallible::{distro, hostname}, platform};
 use std::{thread, time};
 use rand::Rng;
 use serde_json::json;
+use p256::{
+    ecdsa::{signature::Signer, signature::Verifier, Signature, SigningKey, VerifyingKey},
+    elliptic_curve::PublicKey,
+};
+use sha2::{Digest, Sha256};
+use hex;
 
 #[derive(Deserialize)]
 struct Command {
@@ -197,14 +203,22 @@ fn main() {
             // verify signature and nonce
             let mut verified = true;
 
+            //TODO: verification
+            /*
             if verified {
-                //TODO: check signature
+                let data = format!("{}{}{}", user_id.clone().unwrap(), access_token.clone().unwrap(), previous.clone().to_string());
+                
+                let mut hasher = Sha256::new();
+                hasher.update(data.as_bytes());
+                let hashed_data = hasher.finalize();
+
             }
 
             if verified {
                 verified = cmd.prev == previous;
             }
-
+            */
+            
             if !verified {
                 continue;
             } else {
