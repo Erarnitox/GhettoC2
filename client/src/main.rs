@@ -39,6 +39,9 @@ pub struct Log {
 }
 
 fn main() {
+
+    
+
     let path = env::current_exe()
                         .unwrap()
                         .as_path()
@@ -218,7 +221,7 @@ fn main() {
                 verified = cmd.prev == previous;
             }
             */
-            
+
             if !verified {
                 continue;
             } else {
