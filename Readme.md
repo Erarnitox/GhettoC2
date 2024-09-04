@@ -1,5 +1,5 @@
 > [!WARNING]
-> This is a WIP side project that is very incomplete and insecure! It is only meant to be used a playground for myself
+> This is a WIP side project that is very incomplete and insecure! It is only meant to be used as a playground for myself
 
 > [!CAUTION]
 > This repo will never become a fully functioning C2 framework. I don't want to release something that could be harmful. I won't assist in getting it running for you!
