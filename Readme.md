@@ -12,9 +12,8 @@ Welcome to the Repository of Ghetto C2.
 The worst C2 Framework written completely in Rust.
 
 It is very incomplete right now and will never become a fully functioning C2 framework.
-It will be developed on further in the future but it really only meant to be a playground for features as well as an educational resource
+It will be developed on further in the future but it is really only meant to be a playground for features as well as an educational resource
 to learn about how a very basic C2 framework might fundamentally work.
-
 
 ![Screenshot](./res/screenshot.png)
 
